@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alkira 2026 MSRP 計算機</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #222; min-height: 100vh; }
+
+  /* ── Header ───────────────────────────────────────────────────── */
+  #app-header {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: #fff; padding: 0; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px 8px;
+  }
+  .header-title h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.02em; }
+  .header-title p  { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+
+  .summary-cards {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .summary-card {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px; padding: 6px 16px; text-align: center; min-width: 150px;
+  }
+  .summary-card .label { font-size: 0.68rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.08em; }
+  .summary-card .value { font-size: 1.2rem; font-weight: 700; }
+  .summary-card .value.green { color: #7fff7f; }
+
+  /* ── Controls Bar ─────────────────────────────────────────────── */
+  .controls-bar {
+    background: #fff; border-bottom: 2px solid #e2e8f0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 10px 20px;
+  }
+  .control-group {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .control-group label { font-size: 0.8rem; font-weight: 600; color: #475569; white-space: nowrap; }
+  .control-group input[type="number"] {
+    width: 90px; padding: 5px 8px; border: 2px solid #2E75B6;
+    border-radius: 6px; font-size: 0.9rem; font-weight: 700;
+    color: #0000cc; background: #fff8dc; text-align: center;
+    outline: none; transition: border-color 0.15s;
+  }
+  .control-group input[type="number"]:focus { border-color: #1F4E79; }
+  .control-group .unit-label { font-size: 0.75rem; color: #64748b; }
+
+  .search-wrapper {
+    flex: 1; min-width: 200px; position: relative;
+  }
+  .search-wrapper input {
+    width: 100%; padding: 6px 12px 6px 34px; border: 2px solid #cbd5e1;
+    border-radius: 20px; font-size: 0.85rem; outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-wrapper input:focus { border-color: #2E75B6; }
+  .search-wrapper .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: #94a3b8; font-size: 1rem; pointer-events: none;
+  }
+
+  .btn-group { display: flex; gap: 8px; margin-left: auto; }
+  .btn {
+    padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary   { background: #1F4E79; color: #fff; }
+  .btn-primary:hover { background: #163d63; }
+  .btn-secondary { background: #e2e8f0; color: #334155; }
+  .btn-secondary:hover { background: #cbd5e1; }
+  .btn-success   { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-danger    { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+
+  /* ── Main Content ─────────────────────────────────────────────── */
+  #main { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* ── Group Section ────────────────────────────────────────────── */
+  .group-section { margin-bottom: 10px; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #1F4E79; color: #fff; padding: 9px 16px;
+    cursor: pointer; user-select: none; transition: background 0.15s;
+  }
+  .group-header:hover { background: #163d63; }
+  .group-header .group-name { font-weight: 700; font-size: 0.88rem; letter-spacing: 0.02em; }
+  .group-header .group-meta {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 0.78rem; opacity: 0.9;
+  }
+  .group-header .group-total { font-weight: 700; font-size: 0.95rem; }
+  .group-header .group-count { opacity: 0.75; }
+  .chevron { transition: transform 0.2s; font-size: 0.8rem; }
+  .group-header.collapsed .chevron { transform: rotate(-90deg); }
+
+  /* ── Table ────────────────────────────────────────────────────── */
+  .group-body { background: #fff; overflow: hidden; }
+  .product-table { width: 100%; border-collapse: collapse; }
+  .product-table thead tr {
+    background: #dbeafe; font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #1e40af;
+  }
+  .product-table th { padding: 7px 12px; text-align: left; font-weight: 700; border-bottom: 2px solid #bfdbfe; }
+  .product-table th.right { text-align: right; }
+  .product-table th.center { text-align: center; }
+
+  .product-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+  .product-table tbody tr:nth-child(even) { background: #f8fbff; }
+  .product-table tbody tr:hover { background: #eff6ff; }
+  .product-table tbody tr.active-row { background: #fef9c3 !important; }
+  .product-table tbody tr.hidden { display: none; }
+
+  .product-table td { padding: 6px 12px; vertical-align: middle; }
+  .product-table td.name-col { font-size: 0.85rem; color: #1e293b; }
+  .product-table td.unit-col { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+  .product-table td.price-col { text-align: right; font-size: 0.85rem; color: #374151; font-feature-settings: "tnum"; }
+  .product-table td.cost-col { text-align: right; font-weight: 600; font-size: 0.88rem;
+    color: #1e3a5f; font-feature-settings: "tnum"; }
+  .product-table td.annual-col { text-align: right; font-size: 0.85rem; color: #475569;
+    font-feature-settings: "tnum"; }
+
+  .qty-input {
+    width: 72px; padding: 4px 6px; border: 2px solid #2E75B6; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 700; color: #0000cc; background: #fff8dc;
+    text-align: center; outline: none; display: block; margin: 0 auto;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .qty-input:focus { border-color: #1F4E79; box-shadow: 0 0 0 3px rgba(30,78,121,0.12); }
+  .qty-input.nonzero { background: #d1fae5; border-color: #16a34a; }
+
+  /* ── Discount Input ───────────────────────────────────────────── */
+  .disc-input {
+    width: 60px; padding: 4px 4px; border: 2px solid #d97706; border-radius: 6px;
+    font-size: 0.82rem; font-weight: 700; color: #92400e; background: #fffbeb;
+    text-align: center; outline: none; display: block; margin: 0 auto;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .disc-input:focus { border-color: #b45309; box-shadow: 0 0 0 3px rgba(180,83,9,0.12); }
+  .disc-input.custom { background: #fef3c7; border-color: #f59e0b; color: #78350f; }
+  .net-col { text-align: right; font-weight: 700; font-size: 0.88rem;
+    color: #166534; font-feature-settings: "tnum"; }
+
+  /* ── Subtotal row ─────────────────────────────────────────────── */
+  .subtotal-row td {
+    background: #dbeafe !important; font-weight: 700; color: #1e40af;
+    font-size: 0.85rem; padding: 6px 12px; border-top: 2px solid #93c5fd;
+  }
+
+  /* ── Grand Total Bar ──────────────────────────────────────────── */
+  #grand-total-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, #1F4E79, #2E75B6);
+    color: #fff; display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 28px; box-shadow: 0 -3px 12px rgba(0,0,0,0.2);
+  }
+  #grand-total-bar .gt-left { font-size: 0.85rem; opacity: 0.85; }
+  #grand-total-bar .gt-left strong { font-size: 1rem; display: block; }
+  #grand-total-bar .gt-values { display: flex; gap: 28px; }
+  #grand-total-bar .gt-val { text-align: center; }
+  #grand-total-bar .gt-val .lbl { font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.08em; }
+  #grand-total-bar .gt-val .num { font-size: 1.4rem; font-weight: 700; }
+  #grand-total-bar .gt-val .num.discounted { color: #86efac; }
+  body { padding-bottom: 80px; }
+
+  /* ── No-results ───────────────────────────────────────────────── */
+  .no-results { text-align: center; color: #94a3b8; padding: 40px; font-size: 1rem; }
+
+  /* ── Utility ──────────────────────────────────────────────────── */
+  #main.hidden { display: none; }
+  .no-results.hidden { display: none; }
+
+  /* ── China visibility ─────────────────────────────────────────── */
+  .china-hidden { display: none !important; }
+  .btn-china-off { background: #fee2e2; color: #991b1b; border: 2px solid #fca5a5; }
+  .btn-china-off:hover { background: #fecaca; }
+  .btn-china-on  { background: #dcfce7; color: #166534; border: 2px solid #86efac; }
+  .btn-china-on:hover  { background: #bbf7d0; }
+
+  /* ── Badges ───────────────────────────────────────────────────── */
+  .badge {
+    display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 6px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    vertical-align: middle; margin-left: 4px;
+  }
+  .badge-hour   { background: #dbeafe; color: #1e40af; }
+  .badge-gb     { background: #d1fae5; color: #065f46; }
+  .badge-month  { background: #fef3c7; color: #92400e; }
+  .badge-flat   { background: #f1f5f9; color: #475569; }
+
+  /* ── Quote Modal ──────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: #fff; border-radius: 12px; padding: 28px; max-width: 860px; width: 100%;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 { font-size: 1.2rem; color: #1F4E79; margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  /* ── Quote Form Fields ────────────────────────────────────────── */
+  .q-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 16px;
+    padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .q-form-full { grid-column: 1 / -1; }
+  .q-label { display: block; font-size: 0.73rem; font-weight: 700; color: #475569;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .q-input { width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px;
+    font-size: 0.85rem; color: #1e293b; outline: none; transition: border-color 0.15s; }
+  .q-input:focus { border-color: #2E75B6; }
+  .q-textarea { resize: vertical; min-height: 52px; }
+  .q-logo-wrap { display: flex; align-items: center; gap: 12px; }
+  .q-logo-preview { height: 44px; max-width: 160px; object-fit: contain; border-radius: 4px;
+    border: 1px solid #e2e8f0; padding: 3px; background: #fff; display: none; }
+  .q-logo-clear { font-size: 0.72rem; color: #dc2626; cursor: pointer; text-decoration: underline;
+    white-space: nowrap; display: none; }
+
+  /* ── Quote Preview ────────────────────────────────────────────── */
+  #quote-preview { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;
+    background: #fff; margin-top: 4px; }
+  .quote-meta { color: #64748b; font-size: 0.78rem; margin-bottom: 6px; }
+
+  /* ── Print Styles ─────────────────────────────────────────────── */
+  @media print {
+    body { background: #fff; padding: 0; font-size: 11px; }
+    #app-header, .controls-bar, #grand-total-bar, .btn-group,
+    .modal-overlay, .group-header .chevron { display: none !important; }
+    .group-section { box-shadow: none; margin-bottom: 6px; page-break-inside: avoid; }
+    .group-header { background: #1F4E79 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .product-table tbody tr:nth-child(even) { background: #f8fbff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .qty-input, .disc-input { border: 1px solid #ccc; background: #fff !important; color: #000; }
+    #main { max-width: 100%; padding: 10px; }
+    .print-only-header { display: block !important; }
+  }
+  .print-only-header { display: none; text-align: center; margin-bottom: 16px; }
+  .print-only-header h2 { font-size: 1.1rem; color: #1F4E79; }
+  .print-only-header p  { font-size: 0.75rem; color: #666; }
+
+  /* ── Tooltip ──────────────────────────────────────────────────── */
+  [title] { cursor: help; }
+
+  /* ── Expand All / Collapse All toggle ─────────────────────────── */
+  .view-toggle { font-size: 0.78rem; color: #2E75B6; cursor: pointer; text-decoration: underline; white-space: nowrap; }
+
+  /* ── Wizard Overview ──────────────────────────────────────────── */
+  #wizard-overview { max-width: 1200px; margin: 0 auto; padding: 30px 20px 40px; }
+  #wizard-overview.hidden { display: none; }
+  .wizard-header { text-align: center; margin-bottom: 28px; }
+  .wizard-header h2 { font-size: 1.8rem; font-weight: 700; color: #1F4E79; margin-bottom: 6px; }
+  .wizard-header p { color: #64748b; font-size: 0.9rem; }
+  .wizard-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+  .wizard-card {
+    background: #fff; border: 2px solid #e2e8f0; border-radius: 12px;
+    padding: 22px 16px 18px; cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .wizard-card:hover { border-color: #2E75B6; box-shadow: 0 6px 18px rgba(46,117,182,0.18); transform: translateY(-3px); }
+  .wizard-card.has-items { border-color: #16a34a; background: #f0fdf4; }
+  .wz-step-num { font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 8px; }
+  .wizard-card.has-items .wz-step-num { color: #16a34a; }
+  .wz-icon { font-size: 2rem; margin-bottom: 8px; line-height: 1; }
+  .wz-label { font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; line-height: 1.3; }
+  .wz-desc { font-size: 0.71rem; color: #64748b; margin-bottom: 14px; line-height: 1.45; min-height: 42px; }
+  .wz-stat { font-size: 0.75rem; font-weight: 600; color: #64748b;
+    background: #f1f5f9; border-radius: 20px; padding: 3px 12px; margin-bottom: 14px; }
+  .wizard-card.has-items .wz-stat { background: #dcfce7; color: #166534; }
+  .wz-btn {
+    background: #1F4E79; color: #fff; border: none; border-radius: 6px;
+    padding: 8px 0; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; width: 100%;
+  }
+  .wz-btn:hover { background: #163d63; }
+  .wizard-card.has-items .wz-btn { background: #16a34a; }
+  .wizard-card.has-items .wz-btn:hover { background: #15803d; }
+
+  .wizard-footer { text-align: center; padding-top: 20px; border-top: 2px solid #e2e8f0; }
+  .wizard-totals { display: flex; justify-content: center; gap: 48px; margin-bottom: 20px; }
+  .wz-total-item { text-align: center; }
+  .wz-total-item .wt-lbl { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; }
+  .wz-total-item .wt-val { font-size: 1.4rem; font-weight: 700; color: #1F4E79; }
+  .wz-total-item .wt-val.green { color: #16a34a; }
+
+  /* ── Step Nav Bar ─────────────────────────────────────────────── */
+  #step-nav { background: #1F4E79; color: #fff; padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #step-nav.hidden { display: none; }
+  #step-nav .sn-title { font-weight: 700; font-size: 0.95rem; text-align: center; flex: 1; }
+  #step-nav .sn-sub { font-size: 0.72rem; opacity: 0.75; display: block; margin-top: 2px; }
+  #step-nav .btn-nav { background: rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35);
+    padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  #step-nav .btn-nav:hover { background: rgba(255,255,255,0.32); }
+  #step-nav .btn-nav.btn-nav-done { background: #16a34a; border-color: #16a34a; }
+  #step-nav .btn-nav.btn-nav-done:hover { background: #15803d; }
+
+  /* ── Step Legend ──────────────────────────────────────────────── */
+  .main-content-row { display: flex; gap: 20px; align-items: flex-start; }
+  #legend-panel {
+    flex-shrink: 0; width: 180px;
+    background: #fff; border-radius: 10px; padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;
+    position: sticky; top: 100px;
+  }
+  #legend-panel.hidden { display: none; }
+  .legend-title {
+    font-weight: 700; font-size: 0.8rem; color: #1F4E79;
+    margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 2px solid #2E75B6; letter-spacing: 0.03em;
+  }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; font-size: 0.8rem; color: #374151;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .legend-row:last-child { border-bottom: none; }
+  .legend-key {
+    font-weight: 700; background: #1F4E79; color: #fff;
+    border-radius: 4px; padding: 2px 7px; font-size: 0.72rem;
+    min-width: 34px; text-align: center; letter-spacing: 0.02em;
+  }
+  .legend-val { color: #475569; }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ═══════════════════════════════════════════════════════ -->
+<div id="app-header">
+  <div class="header-top">
+    <div class="header-title">
+      <h1>Alkira 2026 MSRP 計算機</h1>
+    </div>
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="label">MSRP 月額</div>
+        <div class="value" id="hdr-msrp-mo">$0</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">純月額</div>
+        <div class="value green" id="hdr-net-mo">$0</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">純年額</div>
+        <div class="value green" id="hdr-net-yr">$0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTROLS ══════════════════════════════════════════════════════ -->
+<div class="controls-bar">
+  <div class="control-group">
+    <label for="inp-discount">グローバル見積割引率 %</label>
+    <input type="number" id="inp-discount" value="0" min="0" max="100" step="0.5">
+    <span class="unit-label">%</span>
+    <button class="btn btn-secondary btn-sm" id="btn-apply-disc" title="この割引率を全ての行に適用">全て適用</button>
+  </div>
+  <div class="search-wrapper">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="製品またはグループを検索…" autocomplete="off">
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-china-off btn-sm" id="btn-china" title="中国リージョンの製品を表示・非表示">🇨🇳 中国: 非表示</button>
+    <span class="view-toggle" id="toggle-all">全て折りたたむ</span>
+    <button class="btn btn-secondary btn-sm" id="btn-clear">全てクリア</button>
+    <button class="btn btn-success btn-sm" id="btn-csv">⬇ CSV</button>
+    <button class="btn btn-primary btn-sm" id="btn-quote">📋 見積もり</button>
+    <button class="btn btn-secondary btn-sm" id="btn-print">🖨 印刷</button>
+  </div>
+</div>
+
+<!-- ══ WIZARD OVERVIEW ════════════════════════════════════════════════ -->
+<div id="wizard-overview">
+  <div class="wizard-header">
+    <h2>見積もりを作成</h2>
+    <p>各ステップを設定し、準備ができたら<strong>見積もりを作成</strong>をクリックしてください。</p>
+  </div>
+  <div class="wizard-steps" id="wizard-steps-grid">
+    <!-- Rendered by renderWizard() -->
+  </div>
+  <div class="wizard-footer">
+    <div class="wizard-totals">
+      <div class="wz-total-item">
+        <div class="wt-lbl">MSRP 月額</div>
+        <div class="wt-val" id="wz-msrp">–</div>
+      </div>
+      <div class="wz-total-item">
+        <div class="wt-lbl">純月額</div>
+        <div class="wt-val green" id="wz-net">–</div>
+      </div>
+      <div class="wz-total-item">
+        <div class="wt-lbl">純年額</div>
+        <div class="wt-val green" id="wz-yr">–</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-wizard-quote" style="padding:10px 32px;font-size:0.95rem;">📋 見積もりを作成</button>
+  </div>
+</div>
+
+<!-- ══ STEP NAV BAR ════════════════════════════════════════════════ -->
+<div id="step-nav" class="hidden">
+  <button class="btn-nav btn-nav-done" id="btn-back-wizard">← ウィザードに戻る</button>
+  <div style="text-align:center;flex:1">
+    <span class="sn-title" id="sn-title"></span>
+    <span class="sn-sub" id="sn-sub"></span>
+  </div>
+  <button class="btn-nav btn-nav-done" id="btn-next-step">次のステップ →</button>
+</div>
+
+<!-- ══ MAIN ═══════════════════════════════════════════════════════════ -->
+<div id="main" class="hidden">
+  <div class="print-only-header">
+    <h2>Alkira 2026 MSRP 計算機</h2>
+    <p id="print-date"></p>
+  </div>
+  <div class="main-content-row">
+    <div id="legend-panel" class="hidden">
+      <!-- Step 1 legend -->
+      <div id="legend-step1">
+        <div class="legend-title">CXP サイズガイド</div>
+        <div class="legend-row"><span class="legend-key">S</span>   <span class="legend-val">= 100 Mb</span></div>
+        <div class="legend-row"><span class="legend-key">M</span>   <span class="legend-val">= 500 Mb</span></div>
+        <div class="legend-row"><span class="legend-key">L</span>   <span class="legend-val">= 1 G</span></div>
+        <div class="legend-row"><span class="legend-key">2L</span>  <span class="legend-val">= 2 G</span></div>
+        <div class="legend-row"><span class="legend-key">5L</span>  <span class="legend-val">= 5 G</span></div>
+        <div class="legend-row"><span class="legend-key">10L</span> <span class="legend-val">= 10 G</span></div>
+        <div class="legend-row"><span class="legend-key">20L</span> <span class="legend-val">= 20 G</span></div>
+      </div>
+      <!-- Step 4 legend -->
+      <div id="legend-step4">
+        <div class="legend-title">データトラフィック</div>
+        <div style="font-size:0.78rem;color:#475569;line-height:1.6;padding-top:4px;">
+          数量 1 = 730（時間/月）× 1 GB（時間あたり）
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div id="groups-container"></div>
+      <div class="no-results hidden" id="no-results">検索に一致する製品はありません。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GRAND TOTAL BAR ═══════════════════════════════════════════════ -->
+<div id="grand-total-bar">
+  <div class="gt-left">
+    <strong id="gt-items">0 件選択済み</strong>
+    全グループの合計
+  </div>
+  <div class="gt-values">
+    <div class="gt-val">
+      <div class="lbl">MSRP 月額</div>
+      <div class="num" id="gt-msrp-mo">$0</div>
+    </div>
+    <div class="gt-val">
+      <div class="lbl">MSRP 年額</div>
+      <div class="num" id="gt-msrp-yr">$0</div>
+    </div>
+    <div class="gt-val">
+      <div class="lbl">純月額</div>
+      <div class="num discounted" id="gt-net-mo">$0</div>
+    </div>
+    <div class="gt-val">
+      <div class="lbl">純年額</div>
+      <div class="num discounted" id="gt-net-yr">$0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ QUOTE MODAL ════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="quote-modal">
+  <div class="modal">
+    <h2>📋 見積もりを作成</h2>
+    <div class="q-form">
+      <div>
+        <label class="q-label" for="q-logo">会社ロゴ</label>
+        <div class="q-logo-wrap" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <input class="q-input" type="file" id="q-logo" accept="image/*">
+          <img id="q-logo-preview" class="q-logo-preview" alt="ロゴプレビュー">
+          <span id="q-logo-clear" class="q-logo-clear">✕ 削除</span>
+        </div>
+      </div>
+      <div>
+        <label class="q-label" for="q-num">見積番号</label>
+        <input class="q-input" type="text" id="q-num" placeholder="例: 00001537">
+      </div>
+      <div class="q-form-full">
+        <label class="q-label" for="q-customer">顧客 / 会社名</label>
+        <input class="q-input" type="text" id="q-customer" placeholder="会社名">
+      </div>
+      <div class="q-form-full">
+        <label class="q-label" for="q-addr">顧客住所</label>
+        <textarea class="q-input q-textarea" id="q-addr" placeholder="番地&#10;市区町村、都道府県 郵便番号&#10;国"></textarea>
+      </div>
+      <div>
+        <label class="q-label" for="q-prepby">担当者</label>
+        <input class="q-input" type="text" id="q-prepby" placeholder="お名前">
+      </div>
+      <div>
+        <label class="q-label" for="q-email">メールアドレス</label>
+        <input class="q-input" type="text" id="q-email" placeholder="your@email.com">
+      </div>
+    </div>
+    <div id="quote-preview"></div>
+    <div class="modal-actions">
+      <button class="btn btn-success" id="btn-quote-csv">⬇ CSVエクスポート</button>
+      <button class="btn btn-primary" id="btn-quote-print">🖨 見積もりを印刷</button>
+      <button class="btn btn-secondary" id="btn-quote-close">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ PRODUCT DATA ══════════════════════════════════════════════════════════════
+// unit: 'hour' | 'gb' | 'month' | 'flat'
+const GROUPS = [
+  {name:"マルチクラウドネットワークファブリック (CXP) — スタンダード", products:[
+    {n:"CXP - S",   p:1.2,   u:"hour", d:"Multi-Cloud Network Fabric - Small"},
+    {n:"CXP - M",   p:2.4,   u:"hour", d:"Multi-Cloud Network Fabric - Medium"},
+    {n:"CXP - L",   p:4.8,   u:"hour", d:"Multi-Cloud Network Fabric - Large"},
+    {n:"CXP - 2L",  p:8.4,   u:"hour", d:"Multi-Cloud Network Fabric - 2xLarge"},
+    {n:"CXP - 5L",  p:14.7,  u:"hour", d:"Multi-Cloud Network Fabric - 5xLarge"},
+    {n:"CXP - 10L", p:25.75, u:"hour", d:"Multi-Cloud Network Fabric - 10xLarge"},
+    {n:"CXP - 20L", p:36.75, u:"hour", d:"Multi-Cloud Network Fabric - 20xLarge"},
+  ]},
+  {name:"マルチクラウドネットワークファブリック (CXP) — 無制限データ", products:[
+    {n:"CXP - S - Unlimited Data",   p:3.9,    u:"hour", d:"Multi-Cloud Network Fabric - Small - Unlimited Data"},
+    {n:"CXP - M - Unlimited Data",   p:15.9,   u:"hour", d:"Multi-Cloud Network Fabric - Medium - Unlimited Data"},
+    {n:"CXP - L - Unlimited Data",   p:31.8,   u:"hour", d:"Multi-Cloud Network Fabric - Large - Unlimited Data"},
+    {n:"CXP - 2L - Unlimited Data",  p:62.4,   u:"hour", d:"Multi-Cloud Network Fabric - 2Large - Unlimited Data"},
+    {n:"CXP - 5L - Unlimited Data",  p:149.7,  u:"hour", d:"Multi-Cloud Network Fabric - 5Large - Unlimited Data"},
+    {n:"CXP - 10L - Unlimited Data", p:295.75, u:"hour", d:"Multi-Cloud Network Fabric - 10Large - Unlimited Data"},
+    {n:"CXP - 20L - Unlimited Data", p:576.75, u:"hour", d:"Multi-Cloud Network Fabric - 20Large - Unlimited Data"},
+  ]},
+  {name:"中国 マルチクラウドネットワークファブリック", china:true, products:[
+    {n:"China CXP - S",                 p:2.4,  u:"hour", d:"China Multi-Cloud Network Fabric - Small"},
+    {n:"China CXP - M",                 p:4.8,  u:"hour", d:"China Multi-Cloud Network Fabric - Medium"},
+    {n:"China CXP - L",                 p:9.6,  u:"hour", d:"China Multi-Cloud Network Fabric - Large"},
+    {n:"China CXP - 2L",                p:16.8, u:"hour", d:"China Multi-Cloud Network Fabric - 2Large"},
+    {n:"China CXP - 5L",                p:29.4, u:"hour", d:"China Multi-Cloud Network Fabric - 5Large"},
+    {n:"China CXP - S - Unlimited Data",p:7.8,  u:"hour", d:"China Multi-Cloud Network Fabric - Small - Unlimited Data"},
+    {n:"China CXP - M - Unlimited Data",p:31.8, u:"hour", d:"China Multi-Cloud Network Fabric - Medium - Unlimited Data"},
+    {n:"China CXP - L - Unlimited Data",p:63.6, u:"hour", d:"China Multi-Cloud Network Fabric - Large - Unlimited Data"},
+  ]},
+  {name:"AWS クラウドコネクター — VPC", products:[
+    {n:"AWS VPC - S",       p:0.25, u:"hour", d:"AWS VPC Small connector"},
+    {n:"AWS VPC - M",       p:0.5,  u:"hour", d:"AWS VPC Medium connector"},
+    {n:"AWS VPC - L",       p:1.0,  u:"hour", d:"AWS VPC Large connector"},
+    {n:"AWS VPC - 2L",      p:1.75, u:"hour", d:"AWS VPC 2xLarge connector"},
+    {n:"AWS VPC - 5L",      p:3.06, u:"hour", d:"AWS VPC 5xLarge connector"},
+    {n:"AWS VPC - 10L",     p:7.0,  u:"hour", d:"AWS VPC 10xLarge connector"},
+    {n:"AWS VPC - 20L",     p:14.0, u:"hour", d:"AWS VPC 20xLarge connector"},
+    {n:"AWS VPC - S - BKP", p:0.25, u:"hour", d:"AWS VPC Small connector - Backup"},
+    {n:"AWS VPC - M - BKP", p:0.5,  u:"hour", d:"AWS VPC Medium connector - Backup"},
+    {n:"AWS VPC - L - BKP", p:1.0,  u:"hour", d:"AWS VPC Large connector - Backup"},
+    {n:"AWS VPC - 2L - BKP",p:1.75, u:"hour", d:"AWS VPC 2xLarge connector - Backup"},
+    {n:"AWS VPC - 10L - BKP",p:7.0, u:"hour", d:"AWS VPC 10xLarge connector - Backup"},
+    {n:"AWS VPC - 20L - BKP",p:14.0,u:"hour", d:"AWS VPC 20xLarge connector - Backup"},
+  ]},
+  {name:"AWS クラウドコネクター — Direct Connect (DX)", products:[
+    {n:"AWS DX - S",   p:0.4,  u:"hour", d:"AWS Direct Connect Small connector"},
+    {n:"AWS DX - M",   p:0.7,  u:"hour", d:"AWS Direct Connect Medium connector"},
+    {n:"AWS DX - L",   p:1.0,  u:"hour", d:"AWS Direct Connect Large connector"},
+    {n:"AWS DX - 2L",  p:1.75, u:"hour", d:"AWS Direct Connect 2xLarge connector"},
+    {n:"AWS DX - 5L",  p:3.06, u:"hour", d:"AWS Direct Connect 5xLarge connector"},
+    {n:"AWS DX - 10L", p:5.36, u:"hour", d:"AWS Direct Connect 10xLarge connector"},
+    {n:"AWS DX - 20L", p:9.5,  u:"hour", d:"AWS Direct Connect 20xLarge connector"},
+  ]},
+  {name:"AWS クラウドコネクター — Transit Gateway (TGW)", products:[
+    {n:"AWS TGW - S",   p:0.25, u:"hour", d:"AWS TGW Connector - Small"},
+    {n:"AWS TGW - M",   p:0.5,  u:"hour", d:"AWS TGW Connector - Medium"},
+    {n:"AWS TGW - L",   p:1.0,  u:"hour", d:"AWS TGW Connector - Large"},
+    {n:"AWS TGW - 2L",  p:1.75, u:"hour", d:"AWS TGW Connector - 2Large"},
+    {n:"AWS TGW - 5L",  p:3.06, u:"hour", d:"AWS TGW Connector - 5Large"},
+    {n:"AWS TGW - 10L", p:7.0,  u:"hour", d:"AWS TGW Connector - 10Large"},
+    {n:"AWS TGW - 20L", p:14.0, u:"hour", d:"AWS TGW Connector - 20Large"},
+  ]},
+  {name:"Azure クラウドコネクター — VNet", products:[
+    {n:"Azure VNET - S",       p:0.25, u:"hour", d:"Azure VNET Small connector"},
+    {n:"Azure VNET - M",       p:0.5,  u:"hour", d:"Azure VNET Medium connector"},
+    {n:"Azure VNET - L",       p:1.0,  u:"hour", d:"Azure VNET Large connector"},
+    {n:"Azure VNET - 2L",      p:1.75, u:"hour", d:"Azure VNET 2xLarge connector"},
+    {n:"Azure VNET - 5L",      p:3.06, u:"hour", d:"Azure VNET 5xLarge connector"},
+    {n:"Azure VNET - 10L",     p:7.0,  u:"hour", d:"Azure VNET 10xLarge connector"},
+    {n:"Azure VNET - 20L",     p:14.0, u:"hour", d:"Azure VNET 20xLarge connector"},
+    {n:"Azure VNet - S - BKP", p:0.25, u:"hour", d:"Azure VNet Small connector - Backup"},
+    {n:"Azure VNet - M - BKP", p:0.5,  u:"hour", d:"Azure VNet Medium connector - Backup"},
+    {n:"Azure VNet - L - BKP", p:1.0,  u:"hour", d:"Azure VNet Large connector - Backup"},
+    {n:"Azure VNet - 2L - BKP",p:1.75, u:"hour", d:"Azure VNet 2xLarge connector - Backup"},
+  ]},
+  {name:"Azure クラウドコネクター — ExpressRoute (ER)", products:[
+    {n:"Azure ER - S",   p:1.3,  u:"hour", d:"Azure ER Connector - Small"},
+    {n:"Azure ER - M",   p:1.3,  u:"hour", d:"Azure ER Connector - Medium"},
+    {n:"Azure ER - L",   p:1.3,  u:"hour", d:"Azure ER Connector - Large"},
+    {n:"Azure ER - 2L",  p:2.28, u:"hour", d:"Azure ER Connector - 2Large"},
+    {n:"Azure ER - 5L",  p:4.55, u:"hour", d:"Azure ER Connector - 5Large"},
+    {n:"Azure ER - 10L", p:7.96, u:"hour", d:"Azure ER Connector - 10Large"},
+  ]},
+  {name:"GCP クラウドコネクター", products:[
+    {n:"GCP VPC - S",          p:0.25, u:"hour", d:"GCP VPC Small connector"},
+    {n:"GCP VPC - M",          p:0.5,  u:"hour", d:"GCP VPC Medium connector"},
+    {n:"GCP VPC - L",          p:1.0,  u:"hour", d:"GCP VPC Large connector"},
+    {n:"GCP Interconnect - S", p:0.65, u:"hour", d:"GCP Interconnect - Small"},
+    {n:"GCP Interconnect - M", p:1.1,  u:"hour", d:"GCP Interconnect - Medium"},
+    {n:"GCP Interconnect - L", p:1.8,  u:"hour", d:"GCP Interconnect - Large"},
+  ]},
+  {name:"OCI クラウドコネクター", products:[
+    {n:"OCI VCN - S", p:0.25, u:"hour", d:"OCI VCN Small connector"},
+    {n:"OCI VCN - M", p:0.5,  u:"hour", d:"OCI VCN Medium connector"},
+    {n:"OCI VCN - L", p:1.0,  u:"hour", d:"OCI VCN Large connector"},
+  ]},
+  {name:"中国 クラウドコネクター", china:true, products:[
+    {n:"China AWS VPC - S",        p:0.31, u:"hour", d:"China AWS VPC Connector - Small"},
+    {n:"China AWS VPC - M",        p:0.63, u:"hour", d:"China AWS VPC Connector - Medium"},
+    {n:"China AWS VPC - L",        p:1.25, u:"hour", d:"China AWS VPC Connector - Large"},
+    {n:"China AWS VPC - S - BKP",  p:0.31, u:"hour", d:"China AWS VPC Connector - Small - Backup"},
+    {n:"China AWS VPC - M - BKP",  p:0.63, u:"hour", d:"China AWS VPC Connector - Medium - Backup"},
+    {n:"China AWS VPC - L - BKP",  p:1.25, u:"hour", d:"China AWS VPC Connector - Large - Backup"},
+    {n:"China AWS DX - S",         p:0.5,  u:"hour", d:"China AWS Direct Connect - Small"},
+    {n:"China AWS DX - M",         p:0.88, u:"hour", d:"China AWS Direct Connect - Medium"},
+    {n:"China AWS DX - L",         p:1.25, u:"hour", d:"China AWS Direct Connect - Large"},
+    {n:"China Azure VNet - S",       p:0.31, u:"hour", d:"China Azure VNet Connector - Small"},
+    {n:"China Azure VNet - M",       p:0.63, u:"hour", d:"China Azure VNet Connector - Medium"},
+    {n:"China Azure VNet - L",       p:1.25, u:"hour", d:"China Azure VNet Connector - Large"},
+    {n:"China Azure VNet - S - BKP", p:0.31, u:"hour", d:"China Azure VNet Connector - Small - Backup"},
+    {n:"China Azure VNet - M - BKP", p:0.63, u:"hour", d:"China Azure VNet Connector - Medium - Backup"},
+    {n:"China Azure VNet - L - BKP", p:1.25, u:"hour", d:"China Azure VNet Connector - Large - Backup"},
+    {n:"China Azure ER - L",         p:1.65, u:"hour", d:"China Azure ER Connector - Large"},
+  ]},
+  {name:"SD-WAN コネクター — Cisco", products:[
+    {n:"Cisco SD-WAN - S",            p:0.3,  u:"hour", d:"Cisco SD-WAN Small connector"},
+    {n:"Cisco SD-WAN - M",            p:0.6,  u:"hour", d:"Cisco SD-WAN Medium connector"},
+    {n:"Cisco SD-WAN - L",            p:1.2,  u:"hour", d:"Cisco SD-WAN Large connector"},
+    {n:"Cisco SD-WAN Cat8000V - S",   p:0.3,  u:"hour", d:"Cisco SD-WAN Cat8000V - Small"},
+    {n:"Cisco SD-WAN Cat8000V - M",   p:0.6,  u:"hour", d:"Cisco SD-WAN Cat8000V - Medium"},
+    {n:"Cisco SD-WAN Cat8000V - L",   p:1.2,  u:"hour", d:"Cisco SD-WAN Cat8000V - Large"},
+    {n:"Cisco SD-WAN Cat8000V - 2L",  p:1.92, u:"hour", d:"Cisco SD-WAN Cat8000V - 2Large"},
+    {n:"Cisco SD-WAN Cat8000V - 5L",  p:3.45, u:"hour", d:"Cisco SD-WAN Cat8000V - 5Large"},
+    {n:"Cisco SD-WAN Cat8000V - 10L", p:6.0,  u:"hour", d:"Cisco SD-WAN Cat8000V - 10Large"},
+    {n:"Cisco SD-WAN CSR - S",        p:0.3,  u:"hour", d:"Cisco SD-WAN CSR - Small"},
+    {n:"Cisco SD-WAN CSR - M",        p:0.6,  u:"hour", d:"Cisco SD-WAN CSR - Medium"},
+    {n:"Cisco SD-WAN CSR - L",        p:1.2,  u:"hour", d:"Cisco SD-WAN CSR - Large"},
+    {n:"Meraki SD-WAN - S",           p:0.3,  u:"hour", d:"Cisco Meraki SD-WAN Small"},
+    {n:"Meraki SD-WAN - M",           p:0.6,  u:"hour", d:"Cisco Meraki SD-WAN Medium"},
+    {n:"Meraki SD-WAN - L",           p:1.1,  u:"hour", d:"Cisco Meraki SD-WAN Large"},
+    {n:"Meraki SD-WAN - 2L",          p:2.19, u:"hour", d:"Cisco Meraki SD-WAN 2Large"},
+  ]},
+  {name:"SD-WAN コネクター — VMware / Aruba / Versa", products:[
+    {n:"VMware SD-WAN - S",      p:0.68, u:"hour", d:"VMware SD-WAN Small connector"},
+    {n:"VMware SD-WAN - M",      p:1.31, u:"hour", d:"VMware SD-WAN Medium connector"},
+    {n:"VMware SD-WAN - L",      p:1.59, u:"hour", d:"VMware SD-WAN Large connector"},
+    {n:"VMware SD-WAN - 2L",     p:2.3,  u:"hour", d:"VMware SD-WAN 2Large connector"},
+    {n:"Aruba SD-WAN - S",       p:0.26, u:"hour", d:"Aruba SD-WAN Small connector"},
+    {n:"Aruba SD-WAN - M",       p:0.52, u:"hour", d:"Aruba SD-WAN Medium connector"},
+    {n:"Aruba SD-WAN - L",       p:1.04, u:"hour", d:"Aruba SD-WAN Large connector"},
+    {n:"Aruba SD-WAN - 2L",      p:1.82, u:"hour", d:"Aruba SD-WAN 2xLarge connector"},
+    {n:"Aruba SD-WAN Boost - S", p:2.3,  u:"hour", d:"Aruba SD-WAN with Boost - Small"},
+    {n:"Aruba SD-WAN Boost - M", p:4.6,  u:"hour", d:"Aruba SD-WAN with Boost - Medium"},
+    {n:"Aruba SD-WAN Boost - L", p:6.9,  u:"hour", d:"Aruba SD-WAN with Boost - Large"},
+    {n:"Versa SD-WAN - S",       p:0.35, u:"hour", d:"Versa SD-WAN Small connector"},
+    {n:"Versa SD-WAN - M",       p:0.7,  u:"hour", d:"Versa SD-WAN Medium connector"},
+    {n:"Versa SD-WAN - L",       p:1.4,  u:"hour", d:"Versa SD-WAN Large connector"},
+  ]},
+  {name:"SD-WAN コネクター — Fortinet", products:[
+    {n:"Fortinet SD-WAN - BYOL - S",  p:0.5,  u:"hour", d:"Fortinet SD-WAN BYOL Small"},
+    {n:"Fortinet SD-WAN - BYOL - M",  p:1.0,  u:"hour", d:"Fortinet SD-WAN BYOL Medium"},
+    {n:"Fortinet SD-WAN - BYOL - L",  p:2.0,  u:"hour", d:"Fortinet SD-WAN BYOL Large"},
+    {n:"Fortinet SD-WAN - PAYG - S",  p:1.38, u:"hour", d:"Fortinet SD-WAN PAYG Small"},
+    {n:"Fortinet SD-WAN - PAYG - M",  p:2.02, u:"hour", d:"Fortinet SD-WAN PAYG Medium"},
+    {n:"Fortinet SD-WAN - PAYG - L",  p:3.6,  u:"hour", d:"Fortinet SD-WAN PAYG Large"},
+  ]},
+  {name:"中国 SD-WAN コネクター", china:true, products:[
+    {n:"China Cisco SD-WAN - S",           p:0.65, u:"hour", d:"China Cisco SD-WAN Small"},
+    {n:"China Cisco SD-WAN - M",           p:1.29, u:"hour", d:"China Cisco SD-WAN Medium"},
+    {n:"China Cisco SD-WAN - L",           p:2.58, u:"hour", d:"China Cisco SD-WAN Large"},
+    {n:"China Cisco SD-WAN Cat8000V - S",  p:0.65, u:"hour", d:"China Cisco SD-WAN Cat8000V Small"},
+    {n:"China Cisco SD-WAN Cat8000V - M",  p:1.29, u:"hour", d:"China Cisco SD-WAN Cat8000V Medium"},
+    {n:"China Cisco SD-WAN Cat8000V - L",  p:2.58, u:"hour", d:"China Cisco SD-WAN Cat8000V Large"},
+    {n:"China Aruba SD-WAN ECV - S",       p:0.68, u:"hour", d:"China Aruba SD-WAN EdgeConnect Small"},
+    {n:"China Aruba SD-WAN ECV - M",       p:1.35, u:"hour", d:"China Aruba SD-WAN EdgeConnect Medium"},
+    {n:"China Aruba SD-WAN ECV - L",       p:2.23, u:"hour", d:"China Aruba SD-WAN EdgeConnect Large"},
+    {n:"China Aruba SD-WAN ECV Boost - S", p:4.93, u:"hour", d:"China Aruba SD-WAN Boost Small"},
+    {n:"China Aruba SD-WAN ECV Boost - M", p:9.86, u:"hour", d:"China Aruba SD-WAN Boost Medium"},
+    {n:"China Aruba SD-WAN ECV Boost - L", p:14.79,u:"hour", d:"China Aruba SD-WAN Boost Large"},
+    {n:"China Fortinet SD-WAN - S",        p:1.07, u:"hour", d:"China Fortinet SD-WAN Small"},
+    {n:"China Fortinet SD-WAN - M",        p:2.14, u:"hour", d:"China Fortinet SD-WAN Medium"},
+    {n:"China Fortinet SD-WAN - L",        p:4.29, u:"hour", d:"China Fortinet SD-WAN Large"},
+  ]},
+  {name:"IPsec コネクター", products:[
+    {n:"Standard IPsec - S",     p:0.2, u:"hour", d:"IPsec Small connector"},
+    {n:"Standard IPsec - M",     p:0.4, u:"hour", d:"IPsec Medium connector"},
+    {n:"Standard IPsec - L",     p:0.8, u:"hour", d:"IPsec Large connector"},
+    {n:"Standard IPsec - 2L",    p:1.4, u:"hour", d:"IPsec 2Large connector"},
+    {n:"Standard IPsec - 5L",    p:2.8, u:"hour", d:"IPsec 5Large connector"},
+    {n:"Standard IPsec - 10L",   p:5.6, u:"hour", d:"IPsec 10Large connector"},
+    {n:"China Standard IPsec - S",p:0.3, u:"hour", china:true, d:"China IPsec Small connector"},
+    {n:"China Standard IPsec - M",p:0.6, u:"hour", china:true, d:"China IPsec Medium connector"},
+    {n:"China Standard IPsec - L",p:1.2, u:"hour", china:true, d:"China IPsec Large connector"},
+  ]},
+  {name:"セキュリティサービス — Palo Alto Networks (PAN)", products:[
+    {n:"PAN - BYOL - S",          p:0.8,  u:"hour", d:"Palo Alto FW - BYOL - Small"},
+    {n:"PAN - BYOL - M",          p:1.6,  u:"hour", d:"Palo Alto FW - BYOL - Medium"},
+    {n:"PAN - BYOL - L",          p:3.2,  u:"hour", d:"Palo Alto FW - BYOL - Large"},
+    {n:"PAN - BYOL - 2L",         p:5.6,  u:"hour", d:"Palo Alto FW - BYOL - 2Large"},
+    {n:"PAN Bundle 1 - PAYG - S", p:1.8,  u:"hour", d:"Palo Alto FW Bundle 1 - PAYG - Small"},
+    {n:"PAN Bundle 1 - PAYG - M", p:2.6,  u:"hour", d:"Palo Alto FW Bundle 1 - PAYG - Medium"},
+    {n:"PAN Bundle 1 - PAYG - L", p:4.2,  u:"hour", d:"Palo Alto FW Bundle 1 - PAYG - Large"},
+    {n:"PAN Bundle 2 - PAYG - S", p:2.3,  u:"hour", d:"Palo Alto FW Bundle 2 - PAYG - Small"},
+    {n:"PAN Bundle 2 - PAYG - M", p:3.1,  u:"hour", d:"Palo Alto FW Bundle 2 - PAYG - Medium"},
+    {n:"PAN Bundle 2 - PAYG - L", p:4.7,  u:"hour", d:"Palo Alto FW Bundle 2 - PAYG - Large"},
+  ]},
+  {name:"セキュリティサービス — Checkpoint (CHKP)", products:[
+    {n:"CHKP - BYOL - S",  p:0.45, u:"hour", d:"Checkpoint FW - BYOL - Small"},
+    {n:"CHKP - BYOL - M",  p:0.9,  u:"hour", d:"Checkpoint FW - BYOL - Medium"},
+    {n:"CHKP - BYOL - L",  p:1.8,  u:"hour", d:"Checkpoint FW - BYOL - Large"},
+    {n:"CHKP - PAYG - S",  p:1.3,  u:"hour", d:"Checkpoint FW - PAYG - Small"},
+    {n:"CHKP - PAYG - M",  p:1.75, u:"hour", d:"Checkpoint FW - PAYG - Medium"},
+    {n:"CHKP - PAYG - L",  p:2.65, u:"hour", d:"Checkpoint FW - PAYG - Large"},
+  ]},
+  {name:"セキュリティサービス — Fortinet FortiGate", products:[
+    {n:"FortiGate - BYOL - S",  p:0.6,  u:"hour", d:"Fortinet FortiGate NGFW - BYOL - Small"},
+    {n:"FortiGate - BYOL - M",  p:1.1,  u:"hour", d:"Fortinet FortiGate NGFW - BYOL - Medium"},
+    {n:"FortiGate - BYOL - L",  p:2.21, u:"hour", d:"Fortinet FortiGate NGFW - BYOL - Large"},
+    {n:"FortiGate - BYOL - 2L", p:4.43, u:"hour", d:"Fortinet FortiGate NGFW - BYOL - 2Large"},
+    {n:"FortiGate - BYOL - 5L", p:9.94, u:"hour", d:"Fortinet FortiGate NGFW - BYOL - 5Large"},
+    {n:"FortiGate - PAYG - S",  p:1.34, u:"hour", d:"Fortinet FortiGate NGFW - PAYG - Small"},
+    {n:"FortiGate - PAYG - M",  p:1.84, u:"hour", d:"Fortinet FortiGate NGFW - PAYG - Medium"},
+    {n:"FortiGate - PAYG - L",  p:3.07, u:"hour", d:"Fortinet FortiGate NGFW - PAYG - Large"},
+    {n:"FortiGate - PAYG - 2L", p:6.39, u:"hour", d:"Fortinet FortiGate NGFW - PAYG - 2Large"},
+    {n:"FortiGate - PAYG - 5L", p:13.36,u:"hour", d:"Fortinet FortiGate NGFW - PAYG - 5Large"},
+  ]},
+  {name:"セキュリティサービス — Cisco Firewall (FTDv)", products:[
+    {n:"Cisco Firewall Service - BYOL - S",  p:0.57, u:"hour", d:"Cisco FTDv - BYOL - Small"},
+    {n:"Cisco Firewall Service - BYOL - M",  p:0.72, u:"hour", d:"Cisco FTDv - BYOL - Medium"},
+    {n:"Cisco Firewall Service - BYOL - L",  p:1.41, u:"hour", d:"Cisco FTDv - BYOL - Large"},
+    {n:"Cisco Firewall Service - BYOL - 2L", p:2.8,  u:"hour", d:"Cisco FTDv - BYOL - 2Large"},
+    {n:"Cisco Firewall Service - PAYG - S",  p:2.73, u:"hour", d:"Cisco FTDv - PAYG - Small"},
+    {n:"Cisco Firewall Service - PAYG - M",  p:2.88, u:"hour", d:"Cisco FTDv - PAYG - Medium"},
+    {n:"Cisco Firewall Service - PAYG - L",  p:3.57, u:"hour", d:"Cisco FTDv - PAYG - Large"},
+    {n:"Cisco Firewall Service - PAYG - 2L", p:4.96, u:"hour", d:"Cisco FTDv - PAYG - 2Large"},
+  ]},
+  {name:"セキュリティサービス — F5 ロードバランサー", products:[
+    {n:"F5LB - BYOL - LTM/DNS - S",  p:1.46,  u:"hour", d:"F5 LB - BYOL - 2 Boot Locations - LTM/DNS - Small"},
+    {n:"F5LB - BYOL - LTM/DNS - M",  p:2.3,   u:"hour", d:"F5 LB - BYOL - 2 Boot Locations - LTM/DNS - Medium"},
+    {n:"F5LB - BYOL - LTM/DNS - L",  p:3.42,  u:"hour", d:"F5 LB - BYOL - 2 Boot Locations - LTM/DNS - Large"},
+    {n:"F5LB - BYOL - LTM/DNS - 2L", p:5.34,  u:"hour", d:"F5 LB - BYOL - 2 Boot Locations - LTM/DNS - 2Large"},
+    {n:"F5LB - BYOL - LTM/DNS - 5L", p:16.68, u:"hour", d:"F5 LB - BYOL - 2 Boot Locations - LTM/DNS - 5Large"},
+    {n:"F5LB - PAYG - Good - S",  p:2.29,  u:"hour", d:"F5 LB - PAYG - Good - Small"},
+    {n:"F5LB - PAYG - Good - M",  p:3.13,  u:"hour", d:"F5 LB - PAYG - Good - Medium"},
+    {n:"F5LB - PAYG - Good - L",  p:5.09,  u:"hour", d:"F5 LB - PAYG - Good - Large"},
+    {n:"F5LB - PAYG - Good - 2L", p:7.63,  u:"hour", d:"F5 LB - PAYG - Good - 2Large"},
+    {n:"F5LB - PAYG - Good - 5L", p:18.97, u:"hour", d:"F5 LB - PAYG - Good - 5Large"},
+  ]},
+  {name:"セキュリティサービス — Zscaler ZIA", products:[
+    {n:"Zscaler ZIA - S",  p:0.0, u:"hour", d:"Zscaler Internet Access - Small"},
+    {n:"Zscaler ZIA - M",  p:0.0, u:"hour", d:"Zscaler Internet Access - Medium"},
+    {n:"Zscaler ZIA - L",  p:0.0, u:"hour", d:"Zscaler Internet Access - Large"},
+    {n:"Zscaler ZIA - 2L", p:0.0, u:"hour", d:"Zscaler Internet Access - 2Large"},
+  ]},
+  {name:"セキュリティサービス — Infoblox DNS/DHCP (BYOL)", products:[
+    {n:"Infoblox-BYOL-IB825",  p:0.23, u:"hour", d:"Infoblox Trinzic TE-V825"},
+    {n:"Infoblox-BYOL-IB1425", p:0.67, u:"hour", d:"Infoblox Trinzic TE-V1425"},
+    {n:"Infoblox-BYOL-IB2225", p:1.33, u:"hour", d:"Infoblox Trinzic TE-V2225"},
+    {n:"Infoblox-BYOL-IB926",  p:1.3,  u:"hour", d:"Infoblox Trinzic TE-V926 - X6 Platform"},
+    {n:"Infoblox-BYOL-IB1526", p:3.56, u:"hour", d:"Infoblox Trinzic TE-V1526 - X6 Platform"},
+    {n:"Infoblox-BYOL-IB2326", p:5.0,  u:"hour", d:"Infoblox Trinzic TE-V2326 - X6 Platform"},
+    {n:"Infoblox-BYOL-IB4126", p:7.0,  u:"hour", d:"Infoblox Trinzic TE-V4126 - X6 Platform"},
+  ]},
+  {name:"中国 セキュリティサービス", china:true, products:[
+    {n:"China PAN - BYOL - S",                  p:2.08, u:"hour", d:"China Palo Alto FW - BYOL - Small"},
+    {n:"China PAN - BYOL - M",                  p:4.16, u:"hour", d:"China Palo Alto FW - BYOL - Medium"},
+    {n:"China PAN - BYOL - L",                  p:8.32, u:"hour", d:"China Palo Alto FW - BYOL - Large"},
+    {n:"China CHKP - BYOL - S",                 p:0.96, u:"hour", d:"China Checkpoint FW - BYOL - Small"},
+    {n:"China CHKP - BYOL - M",                 p:1.93, u:"hour", d:"China Checkpoint FW - BYOL - Medium"},
+    {n:"China CHKP - BYOL - L",                 p:3.86, u:"hour", d:"China Checkpoint FW - BYOL - Large"},
+    {n:"China FortiGate - BYOL - S",            p:1.29, u:"hour", d:"China Fortinet FortiGate - BYOL - Small"},
+    {n:"China FortiGate - BYOL - M",            p:2.36, u:"hour", d:"China Fortinet FortiGate - BYOL - Medium"},
+    {n:"China FortiGate - BYOL - L",            p:4.74, u:"hour", d:"China Fortinet FortiGate - BYOL - Large"},
+    {n:"China Cisco Firewall Service - BYOL - S",p:1.22,u:"hour", d:"China Cisco FTDv - BYOL - Small"},
+    {n:"China Cisco Firewall Service - BYOL - M",p:1.54,u:"hour", d:"China Cisco FTDv - BYOL - Medium"},
+    {n:"China Cisco Firewall Service - BYOL - L",p:3.02,u:"hour", d:"China Cisco FTDv - BYOL - Large"},
+    {n:"China Zscalar ZIA - S",                 p:0.0,  u:"hour", d:"China Zscaler Internet Access - Small"},
+    {n:"China Zscalar ZIA - M",                 p:0.0,  u:"hour", d:"China Zscaler Internet Access - Medium"},
+    {n:"China Zscalar ZIA - L",                 p:0.0,  u:"hour", d:"China Zscaler Internet Access - Large"},
+  ]},
+  {name:"Akamai Prolexic コネクター", products:[
+    {n:"Akamai Prolexic - S",  p:1.0,  u:"hour", d:"Akamai Prolexic Connector - Small"},
+    {n:"Akamai Prolexic - M",  p:1.75, u:"hour", d:"Akamai Prolexic Connector - Medium"},
+    {n:"Akamai Prolexic - L",  p:3.06, u:"hour", d:"Akamai Prolexic Connector - Large"},
+    {n:"Akamai Prolexic - 2L", p:5.36, u:"hour", d:"Akamai Prolexic Connector - 2Large"},
+    {n:"Akamai Prolexic - 5L", p:9.38, u:"hour", d:"Akamai Prolexic Connector - 5Large"},
+  ]},
+  {name:"中国 クロスボーダー接続 — インターネット シングルリンク", china:true, products:[
+    {n:"China CrossBorder-SL-XXS",p:5.48,  u:"hour", d:"Cross Border - Single Link - XXSmall - 20 Mbps"},
+    {n:"China CrossBorder-SL-XS", p:7.81,  u:"hour", d:"Cross Border - Single Link - Extra Small - 50 Mbps"},
+    {n:"China CrossBorder-SL-S",  p:9.59,  u:"hour", d:"Cross Border - Single Link - Small - 100 Mbps"},
+    {n:"China CrossBorder-SL-M",  p:24.66, u:"hour", d:"Cross Border - Single Link - Medium - 500 Mbps"},
+    {n:"China CrossBorder-SL-L",  p:47.96, u:"hour", d:"Cross Border - Single Link - Large - 1 Gbps"},
+  ]},
+  {name:"中国 クロスボーダー接続 — インターネット デュアルリンク", china:true, products:[
+    {n:"China CrossBorder-DL-XXS",p:7.68,  u:"hour", d:"Cross Border - Dual Link - XXSmall - 20 Mbps"},
+    {n:"China CrossBorder-DL-XS", p:10.96, u:"hour", d:"Cross Border - Dual Link - Extra Small - 50 Mbps"},
+    {n:"China CrossBorder-DL-S",  p:15.08, u:"hour", d:"Cross Border - Dual Link - Small - 100 Mbps"},
+    {n:"China CrossBorder-DL-M",  p:41.1,  u:"hour", d:"Cross Border - Dual Link - Medium - 500 Mbps"},
+    {n:"China CrossBorder-DL-L",  p:82.3,  u:"hour", d:"Cross Border - Dual Link - Large - 1 Gbps"},
+  ]},
+  {name:"中国 クロスボーダー接続 — プライベート DX/ER シングルリンク", china:true, products:[
+    {n:"China CrossBorder-SL-PR-S",  p:11.64,  u:"hour", d:"Cross Border - SL Private - Small - 100 Mbps"},
+    {n:"China CrossBorder-SL-PR-M",  p:41.0,   u:"hour", d:"Cross Border - SL Private - Medium - 500 Mbps"},
+    {n:"China CrossBorder-SL-PR-L",  p:75.34,  u:"hour", d:"Cross Border - SL Private - Large - 1 Gbps"},
+    {n:"China CrossBorder-SL-PR-2L", p:123.3,  u:"hour", d:"Cross Border - SL Private - 2Large - 2 Gbps"},
+    {n:"China CrossBorder-SL-PR-5L", p:287.67, u:"hour", d:"Cross Border - SL Private - 5Large - 5 Gbps"},
+  ]},
+  {name:"中国 クロスボーダー接続 — プライベート DX/ER デュアルリンク", china:true, products:[
+    {n:"China CrossBorder-DL-PR-2L", p:178.08, u:"hour", d:"Cross Border - DL Private - 2Large - 2 Gbps"},
+    {n:"China CrossBorder-DL-PR-5L", p:369.86, u:"hour", d:"Cross Border - DL Private - 5Large - 5 Gbps"},
+  ]},
+  {name:"リモートアクセス & インターネット", products:[
+    {n:"Remote Access - S",             p:0.05, u:"hour", d:"Remote Access Service - Small"},
+    {n:"Remote Access - M",             p:0.1,  u:"hour", d:"Remote Access Service - Medium"},
+    {n:"Remote Access - L",             p:0.2,  u:"hour", d:"Remote Access Service - Large"},
+    {n:"Remote Access - Session Hours", p:0.03, u:"hour", d:"Remote Access Active Session Hours"},
+    {n:"Inet",                          p:0.0,  u:"hour", d:"Internet Connector"},
+    {n:"Inet Apps - S",                 p:0.02, u:"hour", d:"Internet Application - Small"},
+    {n:"Inet Apps - M",                 p:0.04, u:"hour", d:"Internet Application - Medium"},
+    {n:"Inet Apps - L",                 p:0.08, u:"hour", d:"Internet Application - Large"},
+    {n:"Inet Apps - 2L",                p:0.16, u:"hour", d:"Internet Application - 2Large"},
+  ]},
+  {name:"ゼロトラストネットワークアクセス (ZTNA)", products:[
+    {n:"ZTNA Basic",    p:1.0, u:"hour", d:"ZTNA Basic - per 100 session licenses per hour"},
+    {n:"ZTNA Advanced", p:2.0, u:"hour", d:"ZTNA Advanced - per 100 session licenses per hour"},
+  ]},
+  {name:"データ & ストレージ", products:[
+    {n:"Data Traffic",       p:0.16,  u:"gb",    d:"Outbound Data Traffic", qtyScale:730},
+    {n:"China Data Traffic", p:0.22,  u:"gb",    china:true, d:"China Outbound Data Traffic"},
+    {n:"Alkira Flow Logs",   p:0.35,  u:"gb",    d:"Flow Collector Integration"},
+    {n:"Datastore - 100G",   p:0.044, u:"month", d:"Additional Alkira Datastore - 100G (per month)"},
+    {n:"Default Datastore",  p:0.0,   u:"month", d:"Default Alkira Datastore - 100G (included)"},
+  ]},
+  {name:"サポート", noDisc:true, autoCalc:true, products:[
+    {n:"サポート", p:0, u:"flat", d:"見積総額の10%が自動計算"},
+  ]},
+  {name:"プロフェッショナルサービス & プログラム", products:[
+    {n:"Professional Services",              p:200.0,   u:"hour", d:"Alkira Professional Services - hourly"},
+    {n:"Professional Services - Hourly Rate",p:400.0,   u:"hour", d:"Professional Services by the Hour (premium)"},
+    {n:"Professional Service Bundle",        p:10000.0, u:"flat", d:"Professional Services Bundle"},
+    {n:"Training - Per Seat",                p:3500.0,  u:"flat", d:"Training - per seat"},
+    {n:"ALKIRA-PROVE-IT-15",                 p:15000.0, u:"flat", d:"Alkira Prove It Program - value $15K"},
+    {n:"ALKIRA-PROVE-IT-50",                 p:50000.0, u:"flat", d:"Alkira Prove It Program - value $50K"},
+  ]},
+];
+
+// ══ STEPS CONFIG ═════════════════════════════════════════════════════════════
+const STEPS = [
+  { num:1, label:'CXPを選択',
+    desc:'マルチクラウドネットワークファブリックのサイジング（スタンダード & 無制限データ）',
+    icon:'🌐',
+    groups:[0,1,2] },
+  { num:2, label:'ネットワークサービスを選択',
+    desc:'セキュリティ、ゼロトラスト & クロスボーダー接続',
+    icon:'🛡️',
+    groups:[16,17,18,19,20,21,22,23,24,25,26,27,28,30] },
+  { num:3, label:'接続を選択',
+    desc:'クラウドコネクター（AWS、Azure、GCP、OCI）、SD-WAN、IPsec & リモートアクセス',
+    icon:'🔗',
+    groups:[3,4,5,6,7,8,9,10,11,12,13,14,15,29] },
+  { num:4, label:'データ送信を選択',
+    desc:'アウトバウンドデータ転送 & ストレージ',
+    icon:'📤',
+    groups:[31] },
+  { num:5, label:'サポート',
+    desc:'見積総額の10%が自動計算',
+    icon:'🎯',
+    groups:[32] },
+];
+
+// ══ STATE ════════════════════════════════════════════════════════════════════
+const state = { quantities: {}, discounts: {}, collapsed: new Set(), showChina: false, activeStep: null };
+
+// ══ UTILS ════════════════════════════════════════════════════════════════════
+function fmt(v, decimals=0) {
+  if (v === 0) return '–';
+  return '$' + v.toLocaleString('en-US', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+}
+function fmtPrice(v) {
+  return '$' + v.toFixed(2);
+}
+function unitBadge(u) {
+  const map = {hour:['badge-hour','時間単位'], gb:['badge-gb','GB単位'], month:['badge-month','月単位'], flat:['badge-flat','一括']};
+  const [cls, label] = map[u] || ['badge-flat','–'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function getHours()    { return 730; }
+function getDiscount() { return parseFloat(document.getElementById('inp-discount').value) || 0; }
+function getLineDisc(key) {
+  const v = state.discounts[key];
+  return (v !== undefined && v !== null) ? v : getDiscount();
+}
+function monthCost(price, unit, qty, scale) {
+  scale = scale || 1;
+  if (unit === 'hour')  return price * qty * getHours();
+  if (unit === 'gb')    return price * qty * scale;
+  if (unit === 'month') return price * qty;
+  if (unit === 'flat')  return price * qty;
+  return 0;
+}
+
+// ══ RENDER ═══════════════════════════════════════════════════════════════════
+function render() {
+  const container = document.getElementById('groups-container');
+  container.innerHTML = '';
+
+  const stepFilter = state.activeStep !== null ? STEPS[state.activeStep].groups : null;
+
+  GROUPS.forEach((group, gi) => {
+    if (stepFilter && !stepFilter.includes(gi)) return;
+    const section = document.createElement('div');
+    section.className = 'group-section' + (group.china ? ' china-group' : '');
+    section.dataset.gi = gi;
+
+    // Group header
+    const hdr = document.createElement('div');
+    hdr.className = 'group-header' + (state.collapsed.has(gi) ? ' collapsed' : '');
+    hdr.innerHTML = `
+      <span class="group-name">${group.name}</span>
+      <span class="group-meta">
+        <span class="group-count">${group.products.length} 製品</span>
+        <span class="group-total" id="gt-${gi}">–</span>
+        <span class="chevron">▼</span>
+      </span>`;
+    hdr.addEventListener('click', () => toggleGroup(gi));
+    section.appendChild(hdr);
+
+    // Table
+    const body = document.createElement('div');
+    body.className = 'group-body';
+    if (state.collapsed.has(gi)) body.style.display = 'none';
+
+    const table = document.createElement('table');
+    table.className = 'product-table';
+    table.innerHTML = `<thead><tr>
+      <th style="width:28%">製品名</th>
+      <th class="right" style="width:9%">単価</th>
+      <th class="center" style="width:7%">課金方式</th>
+      <th class="center" style="width:7%">数量</th>
+      <th class="center" style="width:7%" title="行ごとの割引率。「全て適用」でグローバル変更可能。">割引 %</th>
+      <th class="right" style="width:13%">月額 (MSRP)</th>
+      <th class="right" style="width:13%">月額 (純額)</th>
+      <th class="right" style="width:16%">年額 (純額)</th>
+    </tr></thead>`;
+    const tbody = document.createElement('tbody');
+
+    group.products.forEach((prod, pi) => {
+      const key = `${gi}-${pi}`;
+      const tr = document.createElement('tr');
+      tr.dataset.key = key;
+      tr.dataset.name = (prod.n + ' ' + prod.d + ' ' + group.name).toLowerCase();
+
+      // ── Auto-calculated row (Support = 10% of total) ──
+      if (group.autoCalc) {
+        tr.innerHTML = `
+          <td class="name-col" title="${prod.d}">${prod.n}</td>
+          <td class="price-col" id="supp-price" style="color:#64748b;font-style:italic">–</td>
+          <td class="unit-col" style="text-align:center"><span class="badge badge-flat">自動</span></td>
+          <td style="text-align:center;color:#94a3b8;font-size:0.8rem">—</td>
+          <td style="text-align:center;color:#94a3b8;font-size:0.8rem">—</td>
+          <td class="cost-col" id="mc-${key}">–</td>
+          <td class="net-col"  id="nm-${key}">–</td>
+          <td class="annual-col" id="an-${key}">–</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      // ── Normal row ──
+      const qty  = state.quantities[key] || 0;
+      const disc = group.noDisc ? 0 : getLineDisc(key);
+      const mc   = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+      const netMc = mc * (1 - disc/100);
+      const netYr = netMc * (prod.u === 'flat' ? 1 : 12);
+      const isCustomDisc = !group.noDisc && state.discounts[key] !== undefined && state.discounts[key] !== getDiscount();
+
+      if (prod.china) tr.classList.add('china-row');
+      if (qty > 0) tr.classList.add('active-row');
+
+      const discCell = group.noDisc
+        ? `<td style="text-align:center;color:#94a3b8;font-size:0.8rem">—</td>`
+        : `<td><input class="disc-input${isCustomDisc ? ' custom' : ''}" type="number"
+             value="${disc}" min="0" max="100" step="0.5" data-key="${key}"
+             title="行割引率 %"></td>`;
+
+      tr.innerHTML = `
+        <td class="name-col" title="${prod.d}">${prod.n}</td>
+        <td class="price-col">${fmtPrice(prod.p)}</td>
+        <td class="unit-col" style="text-align:center">${unitBadge(prod.u)}</td>
+        <td><input class="qty-input${qty > 0 ? ' nonzero' : ''}" type="number"
+             value="${qty}" min="0" step="1" data-key="${key}"
+             title="数量を入力"></td>
+        ${discCell}
+        <td class="cost-col" id="mc-${key}">${fmt(mc)}</td>
+        <td class="net-col" id="nm-${key}">${fmt(netMc)}</td>
+        <td class="annual-col" id="an-${key}">${fmt(netYr)}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    // Subtotal row
+    const stRow = document.createElement('tr');
+    stRow.className = 'subtotal-row';
+    stRow.innerHTML = `<td colspan="5" style="text-align:right">グループ小計</td>
+      <td class="cost-col" id="st-mo-${gi}">–</td>
+      <td class="net-col" id="st-nm-${gi}">–</td>
+      <td class="annual-col" id="st-yr-${gi}">–</td>`;
+    tbody.appendChild(stRow);
+
+    table.appendChild(tbody);
+    body.appendChild(table);
+    section.appendChild(body);
+    container.appendChild(section);
+  });
+
+  // Attach input listeners (event delegation)
+  container.addEventListener('input', e => {
+    if (e.target.classList.contains('qty-input')) {
+      const key = e.target.dataset.key;
+      const val = Math.max(0, parseInt(e.target.value) || 0);
+      state.quantities[key] = val;
+      e.target.value = val;
+      e.target.classList.toggle('nonzero', val > 0);
+      const tr = e.target.closest('tr');
+      if (tr) tr.classList.toggle('active-row', val > 0);
+      updateAll();
+    } else if (e.target.classList.contains('disc-input')) {
+      const key = e.target.dataset.key;
+      const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+      state.discounts[key] = val;
+      e.target.value = val;
+      e.target.classList.toggle('custom', val !== getDiscount());
+      updateAll();
+    }
+  });
+
+  updateAll();
+  applyChinaVisibility();
+  document.getElementById('print-date').textContent =
+    '印刷日: ' + new Date().toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric'})
+    + ' | 割引率: ' + getDiscount() + '%';
+}
+
+// ══ CHINA VISIBILITY ══════════════════════════════════════════════════════════
+function applyChinaVisibility() {
+  const show = state.showChina;
+  document.querySelectorAll('.china-group').forEach(el => el.classList.toggle('china-hidden', !show));
+  document.querySelectorAll('.china-row').forEach(el => el.classList.toggle('china-hidden', !show));
+  const btn = document.getElementById('btn-china');
+  if (show) {
+    btn.textContent = '🇨🇳 中国: 表示';
+    btn.className = 'btn btn-china-on btn-sm';
+  } else {
+    btn.textContent = '🇨🇳 中国: 非表示';
+    btn.className = 'btn btn-china-off btn-sm';
+  }
+}
+
+document.getElementById('btn-china').addEventListener('click', () => {
+  state.showChina = !state.showChina;
+  applyChinaVisibility();
+  updateAll();
+});
+
+function toggleGroup(gi) {
+  if (state.collapsed.has(gi)) state.collapsed.delete(gi);
+  else state.collapsed.add(gi);
+  const section = document.querySelector(`.group-section[data-gi="${gi}"]`);
+  const hdr  = section.querySelector('.group-header');
+  const body = section.querySelector('.group-body');
+  hdr.classList.toggle('collapsed', state.collapsed.has(gi));
+  body.style.display = state.collapsed.has(gi) ? 'none' : '';
+}
+
+// ══ UPDATE CALCULATIONS ═══════════════════════════════════════════════════════
+function updateAll() {
+  let grandMsrpMo = 0, grandNetMo = 0;
+  let totalItems = 0;
+
+  // ── Pass 1: all non-autoCalc groups ──────────────────────────────
+  GROUPS.forEach((group, gi) => {
+    if (group.autoCalc) return;
+    let groupMsrpMo = 0, groupNetMo = 0;
+    group.products.forEach((prod, pi) => {
+      const key  = `${gi}-${pi}`;
+      if (!state.showChina && (group.china || prod.china)) return;
+      const qty  = state.quantities[key] || 0;
+      const disc = group.noDisc ? 0 : getLineDisc(key);
+      const mc   = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+      const netMc = mc * (1 - disc/100);
+      const netYr = netMc * (prod.u === 'flat' ? 1 : 12);
+      if (qty > 0) totalItems++;
+
+      const mcEl = document.getElementById(`mc-${key}`);
+      const nmEl = document.getElementById(`nm-${key}`);
+      const anEl = document.getElementById(`an-${key}`);
+      if (mcEl) mcEl.textContent = fmt(mc);
+      if (nmEl) nmEl.textContent = fmt(netMc);
+      if (anEl) anEl.textContent = fmt(netYr);
+
+      groupMsrpMo += mc;
+      groupNetMo  += netMc;
+    });
+
+    const gtEl   = document.getElementById(`gt-${gi}`);
+    const stMoEl = document.getElementById(`st-mo-${gi}`);
+    const stNmEl = document.getElementById(`st-nm-${gi}`);
+    const stYrEl = document.getElementById(`st-yr-${gi}`);
+    if (gtEl)   gtEl.textContent   = groupNetMo > 0 ? fmt(groupNetMo) + '/月' : '–';
+    if (stMoEl) stMoEl.textContent = groupMsrpMo > 0 ? fmt(groupMsrpMo) : '–';
+    if (stNmEl) stNmEl.textContent = groupNetMo  > 0 ? fmt(groupNetMo)  : '–';
+    if (stYrEl) stYrEl.textContent = groupNetMo  > 0 ? fmt(groupNetMo * 12) : '–';
+
+    grandMsrpMo += groupMsrpMo;
+    grandNetMo  += groupNetMo;
+  });
+
+  // ── Pass 2: autoCalc groups (Support = 10% of subtotal so far) ──
+  GROUPS.forEach((group, gi) => {
+    if (!group.autoCalc) return;
+    const suppMo  = grandNetMo * 0.1;
+    const suppYr  = suppMo * 12;
+    const fmtS = v => v > 0 ? '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '–';
+
+    group.products.forEach((prod, pi) => {
+      const key = `${gi}-${pi}`;
+      const priceEl = document.getElementById('supp-price');
+      if (priceEl) priceEl.textContent = fmtS(suppMo);
+      const mcEl = document.getElementById(`mc-${key}`);
+      const nmEl = document.getElementById(`nm-${key}`);
+      const anEl = document.getElementById(`an-${key}`);
+      if (mcEl) mcEl.textContent = fmt(suppMo);
+      if (nmEl) nmEl.textContent = fmt(suppMo);
+      if (anEl) anEl.textContent = fmt(suppYr);
+    });
+
+    const gtEl   = document.getElementById(`gt-${gi}`);
+    const stMoEl = document.getElementById(`st-mo-${gi}`);
+    const stNmEl = document.getElementById(`st-nm-${gi}`);
+    const stYrEl = document.getElementById(`st-yr-${gi}`);
+    if (gtEl)   gtEl.textContent   = suppMo > 0 ? fmt(suppMo) + '/月' : '–';
+    if (stMoEl) stMoEl.textContent = suppMo > 0 ? fmt(suppMo) : '–';
+    if (stNmEl) stNmEl.textContent = suppMo > 0 ? fmt(suppMo) : '–';
+    if (stYrEl) stYrEl.textContent = suppYr > 0 ? fmt(suppYr) : '–';
+
+    grandMsrpMo += suppMo;
+    grandNetMo  += suppMo;
+  });
+
+  const grandNetYr = grandNetMo * 12;
+
+  // Update header
+  document.getElementById('hdr-msrp-mo').textContent = fmt(grandMsrpMo);
+  document.getElementById('hdr-net-mo').textContent  = fmt(grandNetMo);
+  document.getElementById('hdr-net-yr').textContent  = fmt(grandNetYr);
+
+  // Update grand total bar
+  document.getElementById('gt-items').textContent    = totalItems + ' 件選択済み';
+  document.getElementById('gt-msrp-mo').textContent  = fmt(grandMsrpMo);
+  document.getElementById('gt-msrp-yr').textContent  = fmt(grandMsrpMo * 12);
+  document.getElementById('gt-net-mo').textContent   = fmt(grandNetMo);
+  document.getElementById('gt-net-yr').textContent   = fmt(grandNetYr);
+}
+
+// ══ SEARCH ═══════════════════════════════════════════════════════════════════
+let searchTimeout;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => filterProducts(e.target.value.trim().toLowerCase()), 150);
+});
+
+function filterProducts(q) {
+  let anyVisible = false;
+  document.querySelectorAll('.group-section').forEach(section => {
+    const gi = parseInt(section.dataset.gi);
+    const group = GROUPS[gi];
+    const groupMatch = !q || group.name.toLowerCase().includes(q);
+    let groupHasVisible = groupMatch;
+
+    section.querySelectorAll('tbody tr:not(.subtotal-row)').forEach(tr => {
+      const match = !q || groupMatch || tr.dataset.name.includes(q);
+      tr.classList.toggle('hidden', !match);
+      if (match) groupHasVisible = true;
+    });
+
+    section.style.display = groupHasVisible ? '' : 'none';
+    if (groupHasVisible) anyVisible = true;
+    // Auto-expand searched groups
+    if (q && groupHasVisible && state.collapsed.has(gi)) toggleGroup(gi);
+  });
+  document.getElementById('no-results').classList.toggle('hidden', anyVisible);
+}
+
+// ══ TOGGLE ALL ════════════════════════════════════════════════════════════════
+let allCollapsed = false;
+document.getElementById('toggle-all').addEventListener('click', () => {
+  allCollapsed = !allCollapsed;
+  document.getElementById('toggle-all').textContent = allCollapsed ? '全て展開' : '全て折りたたむ';
+  GROUPS.forEach((_, gi) => {
+    if (allCollapsed) state.collapsed.add(gi);
+    else state.collapsed.delete(gi);
+    const section = document.querySelector(`.group-section[data-gi="${gi}"]`);
+    if (!section) return;
+    const hdr  = section.querySelector('.group-header');
+    const body = section.querySelector('.group-body');
+    hdr.classList.toggle('collapsed', allCollapsed);
+    body.style.display = allCollapsed ? 'none' : '';
+  });
+});
+
+// ══ CLEAR ALL ════════════════════════════════════════════════════════════════
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (!confirm('全ての数量をクリアしますか？')) return;
+  state.quantities = {};
+  state.discounts  = {};
+  document.getElementById('inp-discount').value = 0;
+  if (state.activeStep !== null) {
+    render();       // rebuilds all rows from cleared state (calls updateAll internally)
+  } else {
+    renderWizard(); // resets wizard card totals
+    updateAll();    // resets header + grand total bar
+  }
+});
+
+// ══ HOURS / DISCOUNT CHANGE ═══════════════════════════════════════════════════
+// Global discount change: recalc AND sync visible disc inputs for non-overridden lines
+document.getElementById('inp-discount').addEventListener('input', () => {
+  const disc = getDiscount();
+  document.querySelectorAll('.disc-input').forEach(inp => {
+    const key = inp.dataset.key;
+    if (state.discounts[key] === undefined || state.discounts[key] === null) {
+      inp.value = disc;
+    }
+  });
+  updateAll();
+});
+
+// ══ APPLY DISCOUNT TO ALL LINE ITEMS ═════════════════════════════════════════
+document.getElementById('btn-apply-disc').addEventListener('click', () => {
+  const disc = getDiscount();
+  state.discounts = {};   // reset all line overrides to global
+  document.querySelectorAll('.disc-input').forEach(inp => {
+    inp.value = disc;
+    inp.classList.remove('custom');
+    const key = inp.dataset.key;
+    state.discounts[key] = disc;
+  });
+  updateAll();
+});
+
+// ══ CSV EXPORT ════════════════════════════════════════════════════════════════
+function buildCSVData(activeOnly = false) {
+  const hrs  = getHours();
+  const rows = [['Group','Product Name','Description','Billing Unit','Unit Price ($)','Quantity','Discount %','Monthly MSRP ($)','Monthly Net ($)','Annual Net ($)']];
+  let subNetMo = 0;
+
+  GROUPS.forEach((group, gi) => {
+    if (group.autoCalc) return;
+    group.products.forEach((prod, pi) => {
+      const key  = `${gi}-${pi}`;
+      if (!state.showChina && (group.china || prod.china)) return;
+      const qty  = state.quantities[key] || 0;
+      if (activeOnly && qty === 0) return;
+      const disc  = group.noDisc ? 0 : getLineDisc(key);
+      const mc    = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+      const netMc = mc * (1 - disc/100);
+      const netYr = netMc * (prod.u === 'flat' ? 1 : 12);
+      subNetMo += netMc;
+      rows.push([
+        group.name, prod.n, prod.d,
+        prod.u === 'hour' ? `per hour (${hrs}hrs/mo)` : `per ${prod.u}`,
+        prod.p.toFixed(2), qty, disc.toFixed(1) + '%',
+        mc.toFixed(2), netMc.toFixed(2), netYr.toFixed(2)
+      ]);
+    });
+  });
+
+  // Auto-calc support row
+  if (!activeOnly || subNetMo > 0) {
+    const suppMo = subNetMo * 0.1;
+    rows.push(['Support','Support','10% of total quote value','auto',
+      suppMo.toFixed(2), 1, '0.0%',
+      suppMo.toFixed(2), suppMo.toFixed(2), (suppMo * 12).toFixed(2)]);
+  }
+  return rows;
+}
+
+function downloadCSV(activeOnly) {
+  const rows = buildCSVData(activeOnly);
+  if (rows.length <= 1) { alert('エクスポートするアイテムがありません。'); return; }
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Alkira_MSRP_Quote_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+document.getElementById('btn-csv').addEventListener('click', () => downloadCSV(false));
+
+// ══ QUOTE MODAL ════════════════════════════════════════════════════════════════
+// Logo stored as base64 data URL
+let _logoDataUrl = '';
+
+function getQuoteInfo() {
+  return {
+    customer : (document.getElementById('q-customer')||{}).value || '',
+    addr     : (document.getElementById('q-addr')||{}).value    || '',
+    num      : (document.getElementById('q-num')||{}).value     || '',
+    prepBy   : (document.getElementById('q-prepby')||{}).value  || '',
+    email    : (document.getElementById('q-email')||{}).value   || '',
+    logo     : _logoDataUrl,
+  };
+}
+
+// Logo file → base64
+document.getElementById('q-logo').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _logoDataUrl = e.target.result;
+    const preview = document.getElementById('q-logo-preview');
+    const clear   = document.getElementById('q-logo-clear');
+    preview.src   = _logoDataUrl;
+    preview.style.display = 'block';
+    clear.style.display   = 'inline';
+    refreshQuotePreview();
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('q-logo-clear').addEventListener('click', () => {
+  _logoDataUrl = '';
+  document.getElementById('q-logo').value = '';
+  document.getElementById('q-logo-preview').style.display = 'none';
+  document.getElementById('q-logo-clear').style.display   = 'none';
+  refreshQuotePreview();
+});
+
+function buildQuoteHTML(quoteInfo) {
+  quoteInfo = quoteInfo || getQuoteInfo();
+  const hrs = getHours();
+  const fmtQ = v => '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  let rows = '', subNet = 0, rowIdx = 0;
+
+  GROUPS.forEach((group, gi) => {
+    if (group.autoCalc) return;
+    group.products.forEach((prod, pi) => {
+      const key = `${gi}-${pi}`;
+      if (!state.showChina && (group.china || prod.china)) return;
+      const qty = state.quantities[key] || 0;
+      if (!qty) return;
+      const disc   = group.noDisc ? 0 : getLineDisc(key);
+      const mc     = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+      const netMc  = mc * (1 - disc/100);
+      subNet      += netMc;
+      const shade  = (rowIdx % 2 === 1) ? ' style="background:#f9fafb"' : '';
+      rowIdx++;
+      rows += `<tr${shade}>
+        <td style="padding:7px 12px;font-size:0.82rem;border-right:1px solid #e5e7eb">${prod.n}</td>
+        <td style="padding:7px 12px;font-size:0.82rem;color:#6b7280;border-right:1px solid #d1d5db">${prod.d}</td>
+        <td style="padding:7px 12px;font-size:0.82rem;text-align:right;border-right:1px solid #d1d5db">${parseFloat(qty).toFixed(2)}</td>
+        <td style="padding:7px 12px;font-size:0.82rem;text-align:right;border-right:1px solid #d1d5db">${fmtQ(prod.p)}</td>
+        <td style="padding:7px 12px;font-size:0.82rem;text-align:right">${fmtQ(netMc)}</td>
+      </tr>`;
+    });
+  });
+
+  if (!rows) return '<p style="color:#94a3b8;padding:20px;text-align:center">選択されたアイテムがありません。数量を入力して見積もりを作成してください。</p>';
+
+  // Auto-calc support row (10% of subtotal)
+  const suppMo = subNet * 0.1;
+  const suppShade = (rowIdx % 2 === 1) ? ' style="background:#f9fafb"' : '';
+  rows += `<tr${suppShade}>
+    <td style="padding:7px 12px;font-size:0.82rem;border-right:1px solid #e5e7eb">サポート</td>
+    <td style="padding:7px 12px;font-size:0.82rem;color:#6b7280;border-right:1px solid #d1d5db">見積総額の10%</td>
+    <td style="padding:7px 12px;font-size:0.82rem;text-align:right;border-right:1px solid #d1d5db;color:#94a3b8">—</td>
+    <td style="padding:7px 12px;font-size:0.82rem;text-align:right;border-right:1px solid #d1d5db">${fmtQ(suppMo)}</td>
+    <td style="padding:7px 12px;font-size:0.82rem;text-align:right">${fmtQ(suppMo)}</td>
+  </tr>`;
+  const grandNet = subNet + suppMo;
+
+  const today    = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'numeric',day:'numeric'});
+  const customer = quoteInfo.customer.replace(/\n/g,'<br>');
+  const addr     = quoteInfo.addr.replace(/\n/g,'<br>');
+
+  const logoHtml = quoteInfo.logo
+    ? `<div style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e5e7eb;">
+        <img src="${quoteInfo.logo}" style="max-height:60px;max-width:200px;object-fit:contain;" alt="Company logo">
+       </div>`
+    : '';
+
+  return `<div style="font-family:'Segoe UI',Arial,sans-serif;color:#374151;max-width:760px;margin:0 auto;">
+
+    ${logoHtml}
+    <!-- ── Line Items Table ── -->
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem;border:1px solid #d1d5db;">
+      <thead>
+        <tr style="background:#4b5563;color:#fff;">
+          <th style="padding:9px 12px;text-align:left;font-weight:600;font-size:0.78rem;">製品</th>
+          <th style="padding:9px 12px;text-align:left;font-weight:600;font-size:0.78rem;border-left:1px solid #6b7280;">製品説明</th>
+          <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:0.78rem;border-left:1px solid #6b7280;">数量</th>
+          <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:0.78rem;border-left:1px solid #6b7280;">定価</th>
+          <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:0.78rem;border-left:1px solid #6b7280;">月額</th>
+        </tr>
+      </thead>
+      <tbody style="border-top:1px solid #d1d5db;">${rows}</tbody>
+    </table>
+
+    <!-- ── Total Per Month ── -->
+    <div style="background:#e5e7eb;padding:9px 12px;font-weight:600;font-size:0.82rem;color:#374151;border:1px solid #d1d5db;border-top:none;">
+      月額合計 - オンデマンド：
+    </div>
+    <div style="padding:14px 20px;font-size:0.82rem;border:1px solid #d1d5db;border-top:none;display:flex;justify-content:center;align-items:center;gap:40px;">
+      <span>初期：&nbsp; <span style="display:inline-block;width:110px;border-bottom:1px solid #9ca3af;">&nbsp;</span></span>
+      <span>月額合計</span>
+      <strong style="font-size:0.9rem;">${fmtQ(grandNet)}</strong>
+    </div>
+
+    <!-- ── Quote Acceptance ── -->
+    <div style="background:#e5e7eb;padding:9px 12px;font-weight:600;font-size:0.82rem;color:#374151;border:1px solid #d1d5db;border-top:none;margin-top:20px;">
+      見積承認
+    </div>
+    <div style="padding:14px 12px 6px;font-size:0.75rem;text-align:center;font-weight:700;color:#374151;line-height:1.8;border:1px solid #d1d5db;border-top:none;border-bottom:none;">
+      Alkira, Inc.の機密情報。見積金額は米ドル表示であり、税金は含まれていません。<br>
+      以下の署名により、お客様がこの見積書に署名する主体を拘束する権限を有することを確認します。<br>
+      本見積書に記載された金額の支払い義務を含む、すべての条件に拘束されることに同意します。
+    </div>
+    <div style="padding:10px 12px 4px;font-size:0.85rem;font-weight:700;color:#374151;border:1px solid #d1d5db;border-top:none;border-bottom:none;">
+      同意・承認：
+    </div>
+    <div style="padding:6px 12px 24px;font-size:0.82rem;color:#374151;line-height:3.4;border:1px solid #d1d5db;border-top:none;">
+      署名：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="display:inline-block;width:230px;border-bottom:1px solid #374151;">&nbsp;</span><br>
+      氏名：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="display:inline-block;width:210px;border-bottom:1px solid #374151;">&nbsp;</span><br>
+      役職：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="display:inline-block;width:210px;border-bottom:1px solid #374151;">&nbsp;</span><br>
+      日付：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="display:inline-block;width:210px;border-bottom:1px solid #374151;">&nbsp;</span>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div style="margin-top:32px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:0.72rem;color:#9ca3af;line-height:1.7;">
+      見積価格は定義された数量に基づく最低支出を示します。<br>
+      全価格は米ドル表示であり、適用税は含まれていません
+    </div>
+  </div>`;
+}
+
+function refreshQuotePreview() {
+  document.getElementById('quote-preview').innerHTML = buildQuoteHTML();
+}
+
+document.getElementById('btn-quote').addEventListener('click', () => {
+  document.getElementById('quote-modal').classList.remove('hidden');
+  refreshQuotePreview();
+});
+document.getElementById('btn-quote-close').addEventListener('click', () =>
+  document.getElementById('quote-modal').classList.add('hidden'));
+document.getElementById('quote-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+});
+// Refresh preview live as form fields change
+['q-customer','q-addr','q-num','q-prepby','q-email'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', refreshQuotePreview);
+});
+document.getElementById('btn-quote-csv').addEventListener('click', () => downloadCSV(true));
+document.getElementById('btn-quote-print').addEventListener('click', () => {
+  const html = buildQuoteHTML();
+  const win  = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Alkira 見積もり</title>
+    <style>
+      body { font-family:'Segoe UI',Arial,sans-serif; margin:32px 40px; color:#374151; }
+      @media print {
+        body { margin:20px; }
+        @page { size: letter; margin: 0.75in; }
+      }
+    </style>
+  </head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+});
+
+// ══ WIZARD ═══════════════════════════════════════════════════════════════════
+
+// Compute per-step monthly totals (both MSRP and Net)
+function stepTotals(stepIdx) {
+  let msrp = 0, net = 0, count = 0;
+  const isAutoCalcStep = STEPS[stepIdx].groups.some(gi => GROUPS[gi].autoCalc);
+
+  if (isAutoCalcStep) {
+    // Compute 10% of all non-autoCalc selections
+    let subNet = 0;
+    GROUPS.forEach((group, gi) => {
+      if (group.autoCalc) return;
+      group.products.forEach((prod, pi) => {
+        if (!state.showChina && (group.china || prod.china)) return;
+        const key = `${gi}-${pi}`;
+        const qty = state.quantities[key] || 0;
+        if (!qty) return;
+        const mc = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+        const disc = group.noDisc ? 0 : getLineDisc(key);
+        subNet += mc * (1 - disc/100);
+      });
+    });
+    const suppMo = subNet * 0.1;
+    // Also include any non-autoCalc products in this step (e.g., Professional Services)
+    STEPS[stepIdx].groups.forEach(gi => {
+      const group = GROUPS[gi];
+      if (group.autoCalc) { msrp += suppMo; net += suppMo; if (suppMo > 0) count++; return; }
+      group.products.forEach((prod, pi) => {
+        if (!state.showChina && (group.china || prod.china)) return;
+        const key = `${gi}-${pi}`;
+        const qty = state.quantities[key] || 0;
+        if (!qty) return;
+        const mc = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+        const disc = group.noDisc ? 0 : getLineDisc(key);
+        msrp += mc; net += mc * (1 - disc/100); count++;
+      });
+    });
+  } else {
+    STEPS[stepIdx].groups.forEach(gi => {
+      const group = GROUPS[gi];
+      group.products.forEach((prod, pi) => {
+        if (!state.showChina && (group.china || prod.china)) return;
+        const key = `${gi}-${pi}`;
+        const qty = state.quantities[key] || 0;
+        if (!qty) return;
+        const mc = monthCost(prod.p, prod.u, qty, prod.qtyScale);
+        const disc = group.noDisc ? 0 : getLineDisc(key);
+        msrp += mc; net += mc * (1 - disc/100); count++;
+      });
+    });
+  }
+  return { msrp, net, count };
+}
+
+function renderWizard() {
+  const grid = document.getElementById('wizard-steps-grid');
+  grid.innerHTML = '';
+  let grandMsrp = 0, grandNet = 0;
+
+  STEPS.forEach((step, si) => {
+    const { msrp, net, count } = stepTotals(si);
+    grandMsrp += msrp;
+    grandNet  += net;
+    const hasItems = count > 0;
+    const fmtW = v => v === 0 ? '$0' : '$' + v.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+
+    const card = document.createElement('div');
+    card.className = 'wizard-card' + (hasItems ? ' has-items' : '');
+    card.innerHTML = `
+      <div class="wz-step-num">ステップ ${step.num}</div>
+      <div class="wz-icon">${step.icon}</div>
+      <div class="wz-label">${step.label}</div>
+      <div class="wz-desc" ${si === 4 ? 'style="font-size:0.95rem;font-weight:600;color:#1F4E79;"' : ''}>${step.desc}</div>
+      <div class="wz-stat">${hasItems ? `${count} 件 · ${fmtW(net)}/月` : '未設定'}</div>
+      <button class="wz-btn">${hasItems ? '✏️ 編集 →' : '設定する →'}</button>`;
+    card.addEventListener('click', () => enterStep(si));
+    grid.appendChild(card);
+  });
+
+  // Update wizard footer totals
+  const fmtW = v => v === 0 ? '–' : '$' + v.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  document.getElementById('wz-msrp').textContent = fmtW(grandMsrp);
+  document.getElementById('wz-net').textContent  = fmtW(grandNet);
+  document.getElementById('wz-yr').textContent   = fmtW(grandNet * 12);
+}
+
+function enterStep(si) {
+  state.activeStep = si;
+  const step = STEPS[si];
+
+  // Show/hide sections
+  document.getElementById('wizard-overview').classList.add('hidden');
+  document.getElementById('step-nav').classList.remove('hidden');
+  document.getElementById('main').classList.remove('hidden');
+
+  // Show legend on Step 1 (CXP) and Step 4 (Data Egress)
+  const legend = document.getElementById('legend-panel');
+  const l1 = document.getElementById('legend-step1');
+  const l4 = document.getElementById('legend-step4');
+  if (si === 0) {
+    legend.classList.remove('hidden');
+    l1.style.display = ''; l4.style.display = 'none';
+  } else if (si === 3) {
+    legend.classList.remove('hidden');
+    l1.style.display = 'none'; l4.style.display = '';
+  } else {
+    legend.classList.add('hidden');
+  }
+
+  // Update step nav bar
+  document.getElementById('sn-title').textContent = `ステップ ${step.num} — ${step.label}`;
+  const snSub = document.getElementById('sn-sub');
+  snSub.textContent = step.desc;
+  snSub.style.fontSize  = si === 4 ? '0.95rem' : '';
+  snSub.style.fontWeight = si === 4 ? '600' : '';
+  snSub.style.opacity   = si === 4 ? '1' : '';
+
+  // Next vs Done button
+  const btnNext = document.getElementById('btn-next-step');
+  if (si < STEPS.length - 1) {
+    btnNext.textContent = `次のステップ →`;
+    btnNext.className = 'btn-nav btn-nav-done';
+  } else {
+    btnNext.textContent = '📋 見積もりを作成';
+    btnNext.className = 'btn-nav btn-nav-done';
+  }
+
+  render();
+}
+
+function showWizardOverview() {
+  state.activeStep = null;
+  document.getElementById('wizard-overview').classList.remove('hidden');
+  document.getElementById('step-nav').classList.add('hidden');
+  document.getElementById('main').classList.add('hidden');
+  document.getElementById('legend-panel').classList.add('hidden');
+  renderWizard();
+}
+
+// Step nav buttons
+document.getElementById('btn-back-wizard').addEventListener('click', showWizardOverview);
+document.getElementById('btn-next-step').addEventListener('click', () => {
+  if (state.activeStep < STEPS.length - 1) {
+    enterStep(state.activeStep + 1);
+  } else {
+    showWizardOverview();
+    document.getElementById('quote-modal').classList.remove('hidden');
+    refreshQuotePreview();
+  }
+});
+
+// Wizard quote button
+document.getElementById('btn-wizard-quote').addEventListener('click', () => {
+  document.getElementById('quote-modal').classList.remove('hidden');
+  refreshQuotePreview();
+});
+
+
+// ══ PRINT ════════════════════════════════════════════════════════════════════
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+
+// ══ INIT ════════════════════════════════════════════════════════════════════
+showWizardOverview();
+</script>
+</body>
+</html>
